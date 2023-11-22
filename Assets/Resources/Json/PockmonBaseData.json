@@ -1,0 +1,28 @@
+[
+    {
+        "ID": 1,
+        "PockmonName": "妙蛙种子",
+        "Description": "初始御三家",
+        "SpritePath": "123",
+        "MaxHp": "45",
+        "Attack": "49",
+        "Defense": "49",
+        "Speed": "45",
+        "SpDefense": "65",
+        "SpAttack": "65",
+        "PockmonType": "2"
+    },
+    {
+        "ID": 2,
+        "PockmonName": "小火龙",
+        "Description": "初始御三家",
+        "SpritePath": "1233",
+        "MaxHp": "39",
+        "Attack": "52",
+        "Defense": "43",
+        "Speed": "65",
+        "SpDefense": "50",
+        "SpAttack": "60",
+        "PockmonType": "1"
+    }
+]
