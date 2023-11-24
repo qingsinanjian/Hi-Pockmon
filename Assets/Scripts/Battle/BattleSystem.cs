@@ -25,9 +25,13 @@ public class BattleSystem : MonoBehaviour
     public int currentAction;
     public int currentSkill;
 
+    public GameManager gameManager;
+
+    public AudioClip bgClip;
+
     private void Start()
     {
-        StartBattle();
+        //StartBattle();
     }
 
     public void StartBattle()
@@ -61,7 +65,7 @@ public class BattleSystem : MonoBehaviour
         battleDialog.SetUpFightText("逃跑或战斗");
     }
 
-    private void Update()
+    public void BattleUpdate()
     {
         if(battleState == BattleState.PlayerAction)
         {
@@ -126,7 +130,11 @@ public class BattleSystem : MonoBehaviour
 
     private void FightOver()
     {
-
+        gameManager.gameState = GameState.Normal;
+        gameManager.UICamera.gameObject.SetActive(false);
+        gameManager.battleSystem.gameObject.SetActive(false);
+        AudioManager.instance.musicPlayer.Stop();
+        AudioManager.instance.PlayMusic(bgClip);
     }
 
     private void PlayerTurn()
@@ -236,6 +244,10 @@ public class BattleSystem : MonoBehaviour
 
         playerUnit.pockmon.skillList[currentSkill].currentPP--;
         //TODO 播放动画
+        playerUnit.PlayAttackAnim();
+        enemyUnit.PlayHurtAnim();
+        yield return new WaitForSeconds(0.5f);
+
         string playerName = playerUnit.pockmon.pockmonBaseData.PockmonName;
         string skillName = playerUnit.pockmon.skillList[currentSkill].SkillName;
 
@@ -252,25 +264,67 @@ public class BattleSystem : MonoBehaviour
 
         string name1 = enemyUnit.pockmon.pockmonBaseData.PockmonName;
         string str2 = name1 + "受伤，当前血量为：" + enemyUnit.pockmon.currentHealth;
-        yield return StartCoroutine(battleDialog.WaitShow($"{str2}"));
+        yield return battleDialog.StartCoroutine(battleDialog.WaitShow($"{str2}"));
         yield return new WaitForSeconds(1f);
 
         if(defendHealth <= 0)
         {
             string str3 = enemyUnit.pockmon.pockmonBaseData.PockmonName + "昏迷";
-            yield return StartCoroutine($"{str3}");
+            yield return battleDialog.StartCoroutine(battleDialog.WaitShow($"{str3}"));
             yield return new WaitForSeconds(1f);
+            enemyUnit.PlayComaAnim();
             FightOver();
         }
         else
         {
-            yield return new WaitForSeconds(1);
+            yield return new WaitForSeconds(1f);
             EnemyTurn();
         }
     }
 
     public void EnemyTurn()
     {
+        battleState = BattleState.EnemyTurn;
+        battleDialog.SetSkillsEnabled(false);
+        battleDialog.SetActionsEnabled(false);
+        battleDialog.FightText.enabled = false;
+        battleDialog.FightText.text = "";
+        battleDialog.SetPPEnabled(false);
+        StartCoroutine(EnemySkillAffect());
+    }
 
+    private IEnumerator EnemySkillAffect()
+    {
+        yield return null;
+        int index = Random.Range(0, enemyUnit.pockmon.skillList.Count);
+        float defendHealth = enemyUnit.pockmon.Attack(enemyUnit.pockmon, index, playerUnit.pockmon);
+        enemyUnit.pockmon.skillList[index].currentPP--;
+        enemyUnit.PlayAttackAnim();
+        playerUnit.PlayHurtAnim();
+        battleDialog.FightText.enabled = true;
+        string pockmonName = enemyUnit.pockmon.pockmonBaseData.PockmonName;
+        string skillName = enemyUnit.pockmon.skillList[index].SkillName;
+        string str1 = pockmonName + "使用了" + skillName;
+        yield return StartCoroutine(battleDialog.WaitShow(str1));
+        float percent = playerUnit.pockmon.currentHealth * 1.0f / playerUnit.pockmon.pockmonBaseData.MaxHp;
+        yield return StartCoroutine(playerUI.UpdateBlood(percent));
+
+        yield return new WaitForSeconds(1);
+        if(defendHealth < 0)
+        {
+            string str2 = playerUnit.pockmon.pockmonBaseData.PockmonName + "昏迷";
+            yield return StartCoroutine(battleDialog.WaitShow(str2));
+            yield return new WaitForSeconds(1);
+            playerUnit.PlayComaAnim();
+            FightOver();
+        }
+        else
+        {
+            string str3 = playerUnit.pockmon.pockmonBaseData.PockmonName + "受伤，当前血量为：" + defendHealth;
+            yield return StartCoroutine(battleDialog.WaitShow(str3));
+            yield return new WaitForSeconds(1);
+            PlayerTurn();
+        }
+        
     }
 }
